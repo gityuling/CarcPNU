@@ -28,8 +28,7 @@ pairs=pd.read_csv(DATA/'archived_paired_differences.csv')
 trans=pd.read_csv(DATA/'threshold_transitions.csv')
 changes=pd.read_csv(DATA/'all_prediction_changes.csv')
 ORG=['Liver','Lung','Stomach','Mammary']
-NAMES=['OS-Carcinogenicity','Single-task GAT','MolBERT','CarcGC','DCAMCP (corrected)',
- 'DCAMCP (original logic)','XGBoost','Random forest','CarcPNU']
+NAMES=['OS-Carcinogenicity','Single-task GAT','MolBERT','CarcGC','DCAMCP','XGBoost','Random forest','CarcPNU']
 
 def values(name):return tab.loc[name,MET].to_numpy(dtype=float)
 def av(branch,loss):return abl.loc[branch+'_'+loss,COL].to_numpy(dtype=float)
@@ -57,7 +56,7 @@ radar_specs=[
  ('Carcinogenicity comparators',[
   ('Released OS',values('OS-Carcinogenicity'),C['base'],'--'),
   ('CarcGC',values('CarcGC'),C['pu'],'-.'),
-  ('DCAMCP corrected',values('DCAMCP (corrected)'),C['pn'],':'),
+  ('DCAMCP',values('DCAMCP'),C['pn'],':'),
   ('CarcPNU',values('CarcPNU'),C['pnu'],'-')]),
  ('General-purpose comparators',[
   ('MolBERT',values('MolBERT'),'#5772ae','--'),
@@ -81,9 +80,36 @@ def save(f,name,headline,subtitle):
  for ext in ['png','svg']:f.savefig(OUT/(name+'.'+ext),dpi=240)
  plt.close(f)
 
-# Main Figure 2: macro radar profiles above aligned organ-specific heatmaps.
-# Heatmaps share both the row order and a single absolute score color scale.
-f=plt.figure(figsize=(12.4,10.8))
+# Main Figure 2: combined nine-metric macro heatmap above aligned organ heatmaps.
+# All three heatmaps share one absolute score color scale; CarcPNU row is outlined.
+PROF=[('OS-Carcinogenicity','carc'),('CarcGC','carc'),('DCAMCP','carc'),
+ ('MolBERT','gen'),('XGBoost','gen'),('Random forest','gen'),('CarcPNU','pnu')]
+f=plt.figure(figsize=(12.4,9.2))
+ax=f.add_axes([.225,.545,.70,.335])
+v=np.array([values(n) for n,_ in PROF])
+im=ax.imshow(v,aspect='auto',vmin=.4,vmax=1,cmap='YlGnBu')
+ax.set_xticks(range(9),LAB,fontsize=10)
+ax.set_yticks(range(len(PROF)),[n for n,_ in PROF],fontsize=10.5)
+ax.tick_params(axis='both',length=0,pad=8)
+ax.set_xticks(np.arange(-.5,9,1),minor=True)
+ax.set_yticks(np.arange(-.5,len(PROF),1),minor=True)
+ax.grid(which='minor',color='white',lw=.65)
+ax.tick_params(which='minor',bottom=False,left=False)
+for spine in ax.spines.values():spine.set_visible(False)
+for i in range(len(PROF)):
+ for k in range(9):
+  lum=np.dot(im.cmap(im.norm(v[i,k]))[:3],[.2126,.7152,.0722])
+  ax.text(k,i,f'{v[i,k]:.3f}',ha='center',va='center',fontsize=10.5,
+   fontweight='bold' if PROF[i][1]=='pnu' else 'normal',
+   color='white' if lum<.5 else '#203347')
+ax.axhline(2.5,color='white',lw=2.4,zorder=4)  # carcinogenicity-focused | general-purpose
+ax.axvline(1.5,color='white',lw=2.4,zorder=4)  # threshold-free | threshold 0.45
+ax.add_patch(Rectangle((-.5,len(PROF)-1.5),9,1,fill=False,edgecolor=C['pnu'],lw=2,clip_on=False,zorder=5))
+ax.get_yticklabels()[-1].set_color(C['pnu']);ax.get_yticklabels()[-1].set_fontweight('bold')
+f.text(.225,.935,'A  Nine-metric macro profiles',fontsize=13,fontweight='bold',va='bottom')
+cbA=f.colorbar(im,cax=f.add_axes([.947,.545,.012,.335]),ticks=[.4,.6,.8,1])
+cbA.ax.tick_params(labelsize=9,length=2);cbA.outline.set_visible(False)
+cbA.ax.set_title('Score',fontsize=9,pad=9)
 heat_positions=[.225,.595]
 heat_values=[]
 for j,x in enumerate(heat_positions):
@@ -108,17 +134,10 @@ for j,x in enumerate(heat_positions):
  ax.add_patch(Rectangle((-.5,len(NAMES)-1.5),4,1,fill=False,edgecolor=C['pnu'],lw=2,clip_on=False,zorder=5))
  if j==0:
   ax.get_yticklabels()[-1].set_color(C['pnu']);ax.get_yticklabels()[-1].set_fontweight('bold')
- f.text(x,.405,'CD'[j]+'  '+MET[j]+' by organ',fontsize=13,fontweight='bold',va='bottom')
+ f.text(x,.405,'BC'[j]+'  '+MET[j]+' by organ',fontsize=13,fontweight='bold',va='bottom')
 cb=f.colorbar(im,cax=f.add_axes([.947,.055,.012,.325]),ticks=[.4,.6,.8,1])
 cb.ax.tick_params(labelsize=9,length=2);cb.outline.set_visible(False)
 cb.ax.set_title('Score',fontsize=9,pad=9)
-for j,center in enumerate([.29,.77]):
- # The rectangles are square in physical units, preserving identical polar sizes.
- diameter=3.75
- ax=f.add_axes([center-diameter/12.4/2,.57,diameter/12.4,diameter/10.8],projection='polar')
- title,series=radar_specs[j]
- radar(ax,series,title,'AB'[j],large=True,draw_heading=False)
- f.text(.065 if j==0 else .545,.98,'AB'[j]+'  '+('Carcinogenicity methods' if j==0 else 'General-purpose methods'),fontsize=13,fontweight='bold',va='bottom')
 for ext in ['pdf','png','svg']:
  name='fig1_benchmark_radar'+('_manuscript' if ext=='pdf' else '')+'.'+ext
  f.savefig(OUT/name,dpi=240,bbox_inches='tight',pad_inches=.08)
@@ -148,36 +167,3 @@ for ext in ['pdf','png','svg']:
  f.savefig(OUT/name,dpi=240,bbox_inches='tight',pad_inches=.08)
 plt.close(f)
 
-# Replace A/B in the ablation; preserve paired intervals and transition analyses.
-f=plt.figure(figsize=(12.8,13));gs=f.add_gridspec(3,2,left=.13,right=.96,bottom=.10,top=.85,
- hspace=.75,wspace=.50,height_ratios=[1.25,1,1])
-for j in range(2):
- title,series=radar_specs[j+2];radar(f.add_subplot(gs[0,j],projection='polar'),series,title,'AB'[j])
-for j,metric in enumerate(['AUROC','AP']):
- ax=f.add_subplot(gs[1,j]);ax.axvline(0,ls=':',color=C['base'])
- for i,k in enumerate(['supervised','PN_only','PU_only']):
-  q=pairs[(pairs.cohort=='original')&(pairs.branch=='fusion')&(pairs.method_A=='PNU')&(pairs.method_B==k)&(pairs.organ=='macro')&(pairs.metric==metric)].iloc[0]
-  ax.hlines(2-i,q.CI95_low,q.CI95_high,color=C['pnu'],lw=2);ax.scatter(q.delta,2-i,color=C['pnu'],s=40);ax.text(q.delta,2-i+.19,f'{q.delta:+.4f}',ha='center',fontsize=8)
- ax.set_yticks([2,1,0],['vs supervised','vs PN-only','vs PU-only']);ax.set_ylim(-.5,2.6);ax.set_xlabel('PNU minus comparator');ax.grid(axis='x',color='#e7edf2');panel(ax,'CD'[j],metric+': paired 95% intervals')
-ax=f.add_subplot(gs[2,0]);left=np.zeros(4)
-for key,label,color in [('correct_both','Correct in both','#a4c8bb'),('corrected','Corrected',C['pnu']),('regressed','Regressed','#c45b58'),('wrong_both','Wrong in both','#d5dce2')]:
- vals=trans[key].to_numpy()/trans.n.to_numpy();ax.barh(range(4),vals,left=left,height=.65,color=color,label=label)
- for i,v in enumerate(vals):
-  if v>.04:ax.text(left[i]+v/2,i,str(trans.iloc[i][key]),ha='center',va='center',fontsize=8)
- left+=vals
-ax.set_yticks(range(4),[f'{r.organ} (n={r.n})' for r in trans.itertuples()]);ax.invert_yaxis();ax.set_xlim(0,1);ax.set_xlabel('Fraction of evaluable organ records');ax.legend(loc='upper center',bbox_to_anchor=(.5,-.24),ncol=2,fontsize=7,frameon=False);panel(ax,'E','Classification transitions at 0.45')
-ax=f.add_subplot(gs[2,1]);v=ax.violinplot([changes.loc[changes.organ==o,'signed_score_change'] for o in ORG],showmeans=True,showextrema=False)
-for b in v['bodies']:b.set_facecolor(C['pnu']);b.set_alpha(.45)
-ax.axhline(0,ls=':',color=C['base']);ax.set_xticks(range(1,5),ORG);ax.set_ylabel('Label-aligned score change');panel(ax,'F','Continuous prediction changes')
-save(f,'fig4_pnu_ablation_radar','PNU components and prediction behavior','A-B: nine-metric profiles, threshold 0.45. C-D: paired intervals. E-F: seed-mean score diagnostics.')
-
-# A large standalone preview makes the four radar profiles easy to compare.
-f=plt.figure(figsize=(11,11));gs=f.add_gridspec(2,2,left=.09,right=.91,bottom=.12,top=.82,wspace=.68,hspace=.82)
-for i,(title,series) in enumerate(radar_specs):radar(f.add_subplot(gs[i//2,i%2],projection='polar'),series,title,'ABCD'[i])
-f.text(.06,.97,'CarcPNU | Four nine-metric radar comparisons',fontsize=16,fontweight='bold',va='top')
-f.text(.06,.93,'All axes display raw scores from 0 to 1; classification threshold = 0.45.',fontsize=9,color='#607789')
-f.text(.06,.025,'MCC can range from -1 to 1; all values plotted here are nonnegative. Polygon area is not an aggregate performance score.',fontsize=8)
-for ext in ['pdf','svg','png']:f.savefig(OUT/('radar_comparison_preview.'+ext),dpi=240)
-plt.close(f)
-(OUT/'radar_notes_EN.txt').write_text('Four radar panels use the same nine axes, clockwise from AUROC: '+', '.join(MET)+'. All values are untransformed four-organ macro metrics at the archived threshold 0.45 (AUROC/AP are threshold-free). The displayed radial interval is [0,1]; MCC has a natural range [-1,1], but every plotted MCC is nonnegative. No min-max normalization or area-based composite score is used. A radar polygon does not encode uncertainty or establish superiority on every metric. Figure 2 uses a four-panel layout: A/B are nine-metric macro radar profiles in the top row, and C/D are aligned organ heatmaps with a shared absolute color scale in the bottom row. Former main macro AUROC/AP dot plots are retained as Figure S2, and Table S1 retains exact numerical values. Figure 2 contains nine rows: CarcPNU and the previous-study comparators, including both DCAMCP implementations. The matched supervised variant is confined to representation and ablation analyses. Figure 5 retains the supervised, PN-only, PU-only and PNU comparisons. The full nine-metric dot comparison at thresholds 0.45 and 0.50 remains in Figure S1.\n')
-print('Saved four-panel benchmark, supplementary macro comparison, six-panel ablation, and radar preview; raw values verified within [0,1].')
