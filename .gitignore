@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+inputs/
+models/
+predictions/
+tables/
+records/
+logs/
+figures/
+protocol.json
+training_complete.json
+results.json
