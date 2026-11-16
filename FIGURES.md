@@ -1,3 +1,5 @@
 # Figure reproduction
 
 The numerical source tables and scripts are archived in `CarcPNU-figure-sources-v1.zip` alongside the reproducibility assets. Extract the archive; within the extracted directory, run `python build_radar_figures.py` and `python build_merged_ablation.py` with numpy, pandas and matplotlib installed. These scripts reconstruct the benchmark radar/macro, merged component-ablation, chemical-space and loss-behavior figures from the supplied tables. The scripts also appear in `scripts/`; when executing there, copy the archive’s `source_data/` folder into `scripts/`. The molecular case, workflow and prior-sensitivity figures require additional assets and are outside the scope of these two scripts.
+
+For molecular cases, organ curves and parameter-sensitivity figures, extract `CarcPNU-figure-workspace-v1.zip` and follow the README within that archive. The scripts require the included relative directory structure. The workflow diagram is a separate editable illustration.
