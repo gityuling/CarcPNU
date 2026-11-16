@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "If you use this code or these assets, please cite this release and the OS-Carcinogenicity benchmark."
+type: software
+title: "CarcPNU: Organ-Specific Molecular Carcinogenicity Prediction with Positive–Negative–Unlabeled Learning"
+version: 1.0.0
+date-released: 2026-11-16
+doi: 10.5281/zenodo.24273180
+repository-code: https://github.com/gityuling/CarcPNU
+license: MIT
+authors:
+  - family-names: "Liang"
+    given-names: "Shiyang"
+  - family-names: "Liu"
+    given-names: "Siwei"
+  - family-names: "Xie"
+    given-names: "Zhengxing"
+  - family-names: "Peng"
+    given-names: "Guilin"
+  - family-names: "Liu"
+    given-names: "Haohui"
+  - family-names: "Li"
+    given-names: "Yuquan"
+    orcid: "https://orcid.org/0000-0003-2756-0449"
+  - family-names: "Li"
+    given-names: "Yunqi"
